@@ -14,21 +14,46 @@ from scipy.stats import pearsonr
 from sklearn.impute import SimpleImputer
 from sklearn.preprocessing import MinMaxScaler,StandardScaler
 from sklearn.pipeline import Pipeline
+from  sklearn.model_selection import train_test_split
+
 ran_seed = 123
 np.random.seed(ran_seed)
 
 
 home = 'F:/AASecondPaper/5_Model_develop/1022New/Commercial/'
+
+
+data0 = pd.read_excel("F:/AASecondPaper/5_Model_develop/1022New/Commercical/33commercial.xlsx") 
+data0.replace(([' NA']), np.nan, inplace=True)
+
+#######################clean###############################
+def remove_outliers(df, column):
+    
+    Q1 = df[column].quantile(0.25)
+    Q3 = df[column].quantile(0.75)
+    IQR = Q3 - Q1
+    
+    # 定义下界和上界
+    lower_bound = Q1 - 1.5 * IQR
+    upper_bound = Q3 + 1.5 * IQR
+    
+    # 筛选出在范围内的值
+    return df[(df[column] >= lower_bound) & (df[column] <= upper_bound)]
+
+# 对于每一种化合物执行清洗操作
+cleaned_df = data0.groupby('PCAS').apply(remove_outliers, column='logKdoc').reset_index(drop=True)
+
  
-TRAIN = pd.read_excel(home + "Train_commercial.xlsx" )
-TEST = pd.read_excel(home + "Test_commercial.xlsx" )
+TRAIN, TEST = train_test_split(data0, test_size=0.2 ,
+                              random_state=ran_seed)
+
 
 ########################impute#############################################
 mean_imputer = SimpleImputer(strategy="median")
 
-X_train = TRAIN.drop(columns=['logKdoc'])
+X_train = TRAIN.drop(columns=['logKdoc','PCAS'])
 y_train = TRAIN['logKdoc']
-X_test = TEST.drop(columns=['logKdoc'])
+X_test = TEST.drop(columns=['logKdoc','PCAS'])
 y_test = TEST['logKdoc']
 
 X_train_imputed = pd.DataFrame(mean_imputer.fit_transform(X_train), columns=X_train.columns, index=X_train.index)
